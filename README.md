@@ -1,12 +1,11 @@
 # ParaLLEl Lite — Android SM64 Rom Hack Launcher
-
 > **The first mobile-first SM64 Rom Hack manager and frontend wrapper for Android handhelds. Vibe-coded from scratch.**
+<h1 align="center" style="font-size: 3.5rem; font-weight: 900; background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; padding: 10px; animation: rainbow 5s ease infinite;">
+  ⚠️ FIX ME MY CODE IS SPAGHETTI SHIT. It works, it's functional, but pull requests and architecture refactors are highly welcome.
+</h1>
 
----
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/6deb0870-108f-4d80-aea2-af3ed56dd5b7" />
 
-> ⚠️ **FIX ME MY CODE IS SPAGHETTI SHIT. It works, it's functional, but pull requests and architecture refactors are highly welcome.**
-
----
 
 ## Features
 

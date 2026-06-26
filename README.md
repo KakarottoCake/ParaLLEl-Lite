@@ -6,6 +6,8 @@
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/6deb0870-108f-4d80-aea2-af3ed56dd5b7" />
 
+### 🛠️ Setup Prerequisites
+To run games successfully via this launcher, ensure you have the official **RetroArch** (or RetroArch Aarch64) client installed on your device with the **paraLLEl-N64** core downloaded.
 
 ## Features
 

@@ -1,0 +1,1 @@
+# ParaLLEl Lite ProGuard rules

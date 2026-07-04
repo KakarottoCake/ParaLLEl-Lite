@@ -51,7 +51,7 @@ static bool save_file(const char *path, struct mem m) {
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_example_patching_PatchingEngine_applyBpsPatch(
+Java_com_parallellite_patching_PatchingEngine_applyBpsPatch(
     JNIEnv *env,
     jobject obj,
     jstring jPatchPath,

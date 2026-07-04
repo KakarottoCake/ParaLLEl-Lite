@@ -1,10 +1,23 @@
 # ParaLLEl Lite — Android SM64 Rom Hack Launcher
 > **The first mobile-first SM64 Rom Hack manager and frontend wrapper for Android handhelds. Vibe-coded from scratch.**
-<h1 align="center" style="font-size: 3.5rem; font-weight: 900; background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; padding: 10px; animation: rainbow 5s ease infinite;">
-  ⚠️ FIX ME MY CODE IS SPAGHETTI SHIT. It works, it's functional, but pull requests and architecture refactors are highly welcome.
-</h1>
-
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/6deb0870-108f-4d80-aea2-af3ed56dd5b7" />
+
+## Architecture
+
+The app follows a single-source-of-truth MVVM structure:
+
+- **`ui/`** — Jetpack Compose. A Material3 design system (`ui/theme/`) drives all
+  colours, typography and shapes; screens are split into small stateless
+  components (`HeaderBar`, `HackGrid`, `HackDetailPanel`, dialogs, `LoginScreen`).
+- **`ui/launcher/LauncherViewModel`** — owns all UI state as an immutable
+  `StateFlow<LauncherUiState>`; the UI is a pure function of that state.
+- **`data/`** — `HackRepository` (metadata + auth), `PatchLauncher` (download →
+  BPS patch → stage → deep-link), `SessionStore` (encrypted token storage).
+  Networking is Retrofit/OkHttp + kotlinx-serialization; the auth token is only
+  attached to Romhacking hosts so it never leaks to third-party patch CDNs.
+- **`patching-engine/`** — native FLIPS BPS patcher over JNI.
+
+Dependencies are wired manually in `di/AppContainer`.
 
 ### 🛠️ Setup Prerequisites
 To run games successfully via this launcher, ensure you have the official **RetroArch** (or RetroArch Aarch64) client installed on your device with the **paraLLEl-N64** core downloaded.

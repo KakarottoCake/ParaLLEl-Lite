@@ -13,7 +13,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "sm64-frontend"
+rootProject.name = "ParaLLEl-Lite"
 include(":app")
-include(":core-emulator")
 include(":patching-engine")

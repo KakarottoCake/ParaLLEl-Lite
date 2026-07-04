@@ -6,3 +6,9 @@ captures/
 local.properties
 .idea/
 *.iml
+
+# Signing — keep keys and passwords out of the repo
+keystore.properties
+keystore/
+*.jks
+*.keystore

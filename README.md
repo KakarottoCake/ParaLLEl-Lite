@@ -2,7 +2,10 @@
 
 > **A mobile-first Super Mario 64 ROM hack manager and emulator frontend for Android handhelds.**
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/6deb0870-108f-4d80-aea2-af3ed56dd5b7" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f2bdd4e7-4f16-4e44-b059-e630501b378d" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/414ac9b0-89c5-4956-8f4f-4e41f3e8f457" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/e1797924-ef07-4aa9-91e6-e78467455bb7" />
+
 
 Sign in with your Romhacking.com account, browse your followed hacks with cover
 art, patch a clean base ROM on-device, and launch straight into the emulator of

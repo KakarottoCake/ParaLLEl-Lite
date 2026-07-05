@@ -1,14 +1,19 @@
 package com.parallellite.launcher.service
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Presentation
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.Color
 import android.graphics.Typeface
 import android.hardware.display.DisplayManager
+import android.os.Build
 import android.os.Bundle
-import android.os.FileObserver
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -21,14 +26,13 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import coil.load
-import com.parallellite.launcher.data.tracking.StarLayout
-import java.io.File
 
 /**
- * Renders a minimal live star counter on every secondary display (e.g. the Ayn
- * Thor's second screen). Watches the RetroArch `.srm` and re-decodes the star
- * count whenever it flushes to disk. Started when a hack launches with live
- * tracking enabled; stopped when the user returns to the app.
+ * Shows a manual star counter on every secondary display (e.g. the Ayn Thor's
+ * second screen). The user adds/removes stars via the ongoing notification's
+ * action buttons — no save-file reading. It self-heals: the ticker re-shows the
+ * counter if a display drops and returns (task switching), and it keeps running
+ * until the user taps "Stop" or launches another hack.
  */
 class StarTrackerService : Service() {
 
@@ -42,12 +46,9 @@ class StarTrackerService : Service() {
     private var stars = 0
     private var startedAt = 0L
 
-    private var saveFile: File? = null
-    private var layout: StarLayout = StarLayout.vanillaSm64()
-    private var observer: FileObserver? = null
-
     private val ticker = object : Runnable {
         override fun run() {
+            ensureDisplays()
             updateAll()
             handler.postDelayed(this, 1000)
         }
@@ -56,7 +57,7 @@ class StarTrackerService : Service() {
     private val displayListener = object : DisplayManager.DisplayListener {
         override fun onDisplayAdded(displayId: Int) = showOn(displayId)
         override fun onDisplayRemoved(displayId: Int) { presentations.remove(displayId)?.safeDismiss() }
-        override fun onDisplayChanged(displayId: Int) {}
+        override fun onDisplayChanged(displayId: Int) { showOn(displayId) }
     }
 
     override fun onCreate() {
@@ -66,51 +67,68 @@ class StarTrackerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent != null) {
-            title = intent.getStringExtra(EXTRA_TITLE) ?: title
-            thumbnailUrl = intent.getStringExtra(EXTRA_THUMB)
-            totalStars = intent.getIntExtra(EXTRA_TOTAL, 0)
-            val savePath = intent.getStringExtra(EXTRA_SAVE_PATH)
-            layout = intent.getStringExtra(EXTRA_LAYOUT_JSON)
-                ?.let { runCatching { StarLayout.parse(it) }.getOrNull() }
-                ?: StarLayout.vanillaSm64()
-            startedAt = System.currentTimeMillis()
-            stars = 0
-
-            if (savePath != null) startWatching(File(savePath))
-            for (display in displayManager.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)) {
-                showOn(display.displayId)
+        when (intent?.action) {
+            ACTION_INC -> stars++
+            ACTION_DEC -> stars = maxOf(0, stars - 1)
+            ACTION_STOP -> { stopSelf(); return START_NOT_STICKY }
+            else -> {
+                title = intent?.getStringExtra(EXTRA_TITLE) ?: title
+                thumbnailUrl = intent?.getStringExtra(EXTRA_THUMB)
+                totalStars = intent?.getIntExtra(EXTRA_TOTAL, 0) ?: 0
+                stars = 0
+                startedAt = System.currentTimeMillis()
+                handler.removeCallbacks(ticker)
+                handler.post(ticker)
             }
-            handler.removeCallbacks(ticker)
-            handler.post(ticker)
         }
+        promoteToForeground()
+        ensureDisplays()
+        updateAll()
         return START_STICKY
     }
 
-    private fun startWatching(file: File) {
-        saveFile = file
-        decode()
-        val dir = file.parentFile ?: return
-        dir.mkdirs()
-        @Suppress("DEPRECATION")
-        observer = object : FileObserver(dir.absolutePath, CLOSE_WRITE or MODIFY or CREATE) {
-            override fun onEvent(event: Int, path: String?) {
-                if (path != null && path == file.name) decode()
+    /** Runs as a foreground service so the OS won't kill it while the emulator runs. */
+    private fun promoteToForeground() {
+        try {
+            val channelId = "star_tracker"
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (manager.getNotificationChannel(channelId) == null) {
+                manager.createNotificationChannel(
+                    NotificationChannel(channelId, "Star Tracker", NotificationManager.IMPORTANCE_LOW),
+                )
             }
-        }.also { it.startWatching() }
+            val notification: Notification = Notification.Builder(this, channelId)
+                .setContentTitle("$title — ★ $stars")
+                .setContentText("Add stars with the buttons below")
+                .setSmallIcon(android.R.drawable.star_on)
+                .setOngoing(true)
+                .addAction(0, "+1 Star", action(ACTION_INC, 1))
+                .addAction(0, "-1", action(ACTION_DEC, 2))
+                .addAction(0, "Stop", action(ACTION_STOP, 3))
+                .build()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not start foreground", e)
+        }
     }
 
-    private fun decode() {
-        val file = saveFile ?: return
-        runCatching {
-            if (file.exists()) {
-                val decoded = layout.countStars(file.readBytes())
-                handler.post {
-                    stars = decoded
-                    updateAll()
-                }
-            }
-        }.onFailure { Log.w(TAG, "Failed to decode save", it) }
+    private fun action(name: String, requestCode: Int): PendingIntent {
+        val intent = Intent(this, StarTrackerService::class.java).setAction(name)
+        return PendingIntent.getService(
+            this,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    /** Ensure a counter is shown on every non-primary display (self-heals). */
+    private fun ensureDisplays() {
+        for (display in displayManager.displays) showOn(display.displayId)
     }
 
     private fun showOn(displayId: Int) {
@@ -135,7 +153,6 @@ class StarTrackerService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(ticker)
-        observer?.stopWatching()
         displayManager.unregisterDisplayListener(displayListener)
         presentations.values.forEach { it.safeDismiss() }
         presentations.clear()
@@ -172,7 +189,7 @@ class StarTrackerService : Service() {
                 gravity = Gravity.CENTER
             }
             starView = TextView(context).apply {
-                textSize = 64f
+                textSize = 72f
                 setTextColor(Color.WHITE)
                 typeface = Typeface.MONOSPACE
                 gravity = Gravity.CENTER
@@ -202,26 +219,19 @@ class StarTrackerService : Service() {
 
     companion object {
         private const val TAG = "StarTrackerService"
+        private const val NOTIFICATION_ID = 42
         const val EXTRA_TITLE = "title"
         const val EXTRA_THUMB = "thumb"
         const val EXTRA_TOTAL = "total"
-        const val EXTRA_SAVE_PATH = "save_path"
-        const val EXTRA_LAYOUT_JSON = "layout_json"
+        const val ACTION_INC = "com.parallellite.launcher.INC"
+        const val ACTION_DEC = "com.parallellite.launcher.DEC"
+        const val ACTION_STOP = "com.parallellite.launcher.STOP"
 
-        fun start(
-            context: Context,
-            title: String,
-            thumbnailUrl: String?,
-            totalStars: Int,
-            saveFilePath: String,
-            layoutJson: String?,
-        ) {
+        fun start(context: Context, title: String, thumbnailUrl: String?, totalStars: Int) {
             val intent = Intent(context, StarTrackerService::class.java).apply {
                 putExtra(EXTRA_TITLE, title)
                 putExtra(EXTRA_THUMB, thumbnailUrl)
                 putExtra(EXTRA_TOTAL, totalStars)
-                putExtra(EXTRA_SAVE_PATH, saveFilePath)
-                putExtra(EXTRA_LAYOUT_JSON, layoutJson)
             }
             context.startService(intent)
         }

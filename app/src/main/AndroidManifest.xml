@@ -3,9 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Optional: only needed for live star tracking, which reads RetroArch's save file. -->
+    <!-- Needed so M64Plus FZ can open patched ROMs we stage into shared storage. -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
+    <!-- Foreground service + notification power the second-screen star counter. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".ParallelLiteApp"
@@ -32,7 +36,12 @@
 
         <service
             android:name=".service.StarTrackerService"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Live star tracking on a secondary display while a game runs in another app." />
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

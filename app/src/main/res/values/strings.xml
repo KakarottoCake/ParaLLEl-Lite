@@ -31,8 +31,19 @@
     <string name="version_label">Version: %1$s</string>
     <string name="action_play">Play</string>
     <string name="action_patch">Patch / Download</string>
+    <string name="action_unpatch">Unpatch</string>
+    <string name="detail_recommended">Core: %1$s</string>
+    <string name="core_label">Core</string>
+    <string name="core_auto">Auto</string>
+    <string name="core_auto_with">Auto (%1$s)</string>
+    <string name="core_parallel">ParaLLEl</string>
+    <string name="core_mupen">Mupen64+</string>
+    <string name="core_m64plusfz">M64Plus FZ</string>
+    <string name="status_unpatched">Removed patched ROM for %1$s</string>
     <string name="detail_by">by %1$s</string>
     <string name="detail_empty">Select a hack to see details.</string>
+    <string name="detail_no_description">No description available.</string>
+    <string name="detail_recommended_settings">Recommended settings (set these in M64Plus FZ)</string>
 
     <!-- Dialogs -->
     <string name="dialog_version_title">Select Patch Version</string>
@@ -44,8 +55,8 @@
     <string name="settings_output_dir">Configure output directory for patched ROMs:</string>
     <string name="settings_output_label">Target output folder</string>
     <string name="settings_select_folder">Select folder</string>
-    <string name="settings_live_tracking">Live star tracking (2nd screen)</string>
-    <string name="settings_live_tracking_desc">Show a live star counter on a connected second screen. Needs all-files access and redirects RetroArch\'s save location while playing.</string>
+    <string name="settings_live_tracking">Star counter (2nd screen)</string>
+    <string name="settings_live_tracking_desc">Show a star counter on a connected second screen. Add stars yourself with the +/- buttons in the notification while you play.</string>
 
     <!-- Login -->
     <string name="login_provider">Romhacking.com</string>

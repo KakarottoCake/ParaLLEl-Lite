@@ -18,6 +18,11 @@ data class LauncherUiState(
     val patchedRomDir: String = "",
     val liveTrackingEnabled: Boolean = false,
     val isLoading: Boolean = false,
+    // Bumped whenever a ROM is patched or unpatched, so the UI re-checks which
+    // hacks are already patched on disk.
+    val patchGeneration: Int = 0,
+    // Bumped when the user changes a hack's core override, so the picker re-reads.
+    val coreOverrideVersion: Int = 0,
     val status: StatusMessage = StatusMessage.Info(""),
 ) {
     val filteredHacks: List<Hack> = filter.matchKey.let { key ->

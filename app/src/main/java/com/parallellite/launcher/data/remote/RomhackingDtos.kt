@@ -29,6 +29,9 @@ data class RhdcDownloadDto(
 @Serializable
 data class RhdcVersionDto(
     val archived: Boolean = false,
+    val plugin: String? = null,
+    val pluginFlags: List<String> = emptyList(),
+    val hackFlags: List<String> = emptyList(),
     val download: RhdcDownloadDto? = null,
 )
 

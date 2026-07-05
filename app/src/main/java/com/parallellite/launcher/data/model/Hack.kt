@@ -16,11 +16,19 @@ data class Hack(
     val variants: List<HackVersion>,
     val layoutUrl: String? = null,
 ) {
-    /** The most recent downloadable variant, if any. */
-    val latestVariant: HackVersion? get() = variants.lastOrNull()
+    /** The newest downloadable variant (variants are sorted newest-first). */
+    val latestVariant: HackVersion? get() = variants.firstOrNull()
+
+    /** Recommended graphics plugin for the newest version, if the API provides one. */
+    val recommendedPlugin: String? get() = latestVariant?.plugin
+
+    /** Human-readable settings the newest version needs (e.g. "16 kB EEPROM"). */
+    val recommendedSettings: List<String> get() = latestVariant?.settings.orEmpty()
 }
 
 data class HackVersion(
     val name: String,
     val downloadUrl: String,
+    val plugin: String? = null,
+    val settings: List<String> = emptyList(),
 )

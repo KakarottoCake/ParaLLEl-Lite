@@ -53,19 +53,21 @@ class HackRepository(
     }
 
     private fun RhdcFollowingHackDto.toHack(): Hack {
-        val variants = versions
-            .mapNotNull { it.download?.directHref }
-            .map { href ->
-                val decoded = URLDecoder.decode(href, "UTF-8")
-                HackVersion(
-                    name = decoded.substringAfterLast('/'),
-                    downloadUrl = RomhackingApi.BASE_URL.trimEnd('/') + decoded,
-                )
-            }
+        val apiOrder = versions.mapNotNull { v ->
+            val href = v.download?.directHref ?: return@mapNotNull null
+            val decoded = URLDecoder.decode(href, "UTF-8")
+            HackVersion(
+                name = decoded.substringAfterLast('/'),
+                downloadUrl = RomhackingApi.BASE_URL.trimEnd('/') + decoded,
+                plugin = v.plugin,
+                settings = settingLabels(v.hackFlags, v.pluginFlags),
+            )
+        }
+        val variants = sortNewestFirst(apiOrder)
         return Hack(
             id = hackId,
             title = title,
-            version = variants.lastOrNull()?.name ?: "1.0",
+            version = variants.firstOrNull()?.name ?: "1.0",
             description = cleanDescription(description),
             authors = authors.map { it.username },
             starCount = stars,
@@ -77,15 +79,58 @@ class HackRepository(
         )
     }
 
-    /** Downloads the raw star-layout JSON for a hack, or null if it has none. */
-    suspend fun layoutJson(layoutUrl: String?): String? {
-        if (layoutUrl.isNullOrBlank()) return null
-        return withContext(Dispatchers.IO) {
-            runCatching { api.download(layoutUrl).string() }.getOrNull()
-        }
-    }
-
     companion object {
+        private val versionNumberRegex = Regex("""\d+(?:\.\d+)*""")
+
+        /** Maps RHDC hack/plugin flags to human-readable recommended-setting labels. */
+        fun settingLabels(hackFlags: List<String>, pluginFlags: List<String>): List<String> {
+            val labels = mutableListOf<String>()
+            hackFlags.forEach {
+                when (it) {
+                    "big-eeprom" -> labels += "16 kB EEPROM"
+                    "vi-hack" -> labels += "Overclock VI"
+                    "no-overclock" -> labels += "Disable Overclock"
+                    "dual-analog" -> labels += "Dual Analog"
+                    "sd-card" -> labels += "SD Card"
+                }
+            }
+            pluginFlags.forEach {
+                when (it) {
+                    "emulate-framebuffer" -> labels += "Emulate Framebuffer"
+                    "accurate-depth-compare" -> labels += "Accurate Depth Compare"
+                    "upscale-texrects" -> labels += "Upscale Texrects"
+                    "widescreen" -> labels += "Widescreen"
+                    "lle-rsp" -> labels += "LLE RSP"
+                    "allow-hle-fallback" -> labels += "Allow HLE Fallback"
+                }
+            }
+            return labels
+        }
+
+        /**
+         * Sorts patch versions newest-first. The API returns them oldest→newest,
+         * so recency = reversed order. If every filename carries a parseable
+         * version number, we sort by that number instead (recency breaks ties).
+         */
+        fun sortNewestFirst(apiOrder: List<HackVersion>): List<HackVersion> {
+            val byRecency = apiOrder.reversed()
+            if (byRecency.size < 2) return byRecency
+            val keys = byRecency.map { versionKey(it.name) }
+            if (keys.any { it.isEmpty() }) return byRecency
+            return byRecency.sortedWith { a, b -> compareVersions(versionKey(b.name), versionKey(a.name)) }
+        }
+
+        private fun versionKey(name: String): List<Int> =
+            versionNumberRegex.find(name)?.value?.split('.')?.mapNotNull { it.toIntOrNull() } ?: emptyList()
+
+        private fun compareVersions(a: List<Int>, b: List<Int>): Int {
+            for (i in 0 until maxOf(a.size, b.size)) {
+                val diff = a.getOrElse(i) { 0} - b.getOrElse(i) { 0 }
+                if (diff != 0) return diff
+            }
+            return 0
+        }
+
         /** Strips HTML tags and decodes common entities from a hack description. */
         fun cleanDescription(raw: String?): String {
             if (raw.isNullOrBlank()) return ""

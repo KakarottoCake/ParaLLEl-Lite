@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.parallellite.launcher.ParallelLiteApp
 import com.parallellite.launcher.R
+import com.parallellite.launcher.data.CoreChoice
 import com.parallellite.launcher.data.HackRepository
 import com.parallellite.launcher.data.PatchLauncher
 import com.parallellite.launcher.data.SessionStore
@@ -115,6 +116,8 @@ class LauncherViewModel(
     fun setPatchedRomDir(path: String) {
         sessionStore.patchedRomDir = path
         _uiState.update { it.copy(patchedRomDir = path) }
+        // Writing patched ROMs into an arbitrary folder needs All-Files access.
+        patchLauncher.requestAllFilesAccess()
     }
 
     fun setLiveTracking(enabled: Boolean) {
@@ -122,24 +125,59 @@ class LauncherViewModel(
         _uiState.update { it.copy(liveTrackingEnabled = enabled) }
     }
 
-    /** Builds the tracker payload (thumbnail + star layout) when tracking is on. */
+    /** Builds the second-screen counter payload when tracking is on. */
     private suspend fun buildTracking(hack: Hack): PatchLauncher.TrackingInfo? {
         if (!sessionStore.liveTrackingEnabled) return null
         return PatchLauncher.TrackingInfo(
             title = hack.title,
             thumbnailUrl = repository.thumbnailUrl(hack.id),
             totalStars = hack.starCount,
-            layoutJson = repository.layoutJson(hack.layoutUrl),
         )
     }
 
     // ── Patch / launch ──────────────────────────────────────────────────────
-    /** Returns the already-patched ROM file for a hack, or null if not patched yet. */
-    fun existingRom(hack: Hack): File? =
-        patchLauncher.patchedRomFile(hack.title, hack.version).takeIf { it.exists() }
+    /**
+     * Returns an already-patched ROM for a hack, or null if none. Checks every
+     * variant (not just the newest) so a hack with many patches still flips to
+     * "Play" once any of its versions has been patched.
+     */
+    fun existingRom(hack: Hack): File? {
+        for (variant in hack.variants) {
+            val file = patchLauncher.patchedRomFile(hack.title, variant.name)
+            if (file.exists()) return file
+        }
+        return patchLauncher.patchedRomFile(hack.title, hack.version).takeIf { it.exists() }
+    }
 
     fun launchExisting(hack: Hack, rom: File) {
-        viewModelScope.launch { runCatching { patchLauncher.launch(rom, buildTracking(hack)) } }
+        viewModelScope.launch {
+            runCatching {
+                patchLauncher.launch(rom, buildTracking(hack), hack.recommendedPlugin, sessionStore.coreOverride(hack.id))
+            }
+        }
+    }
+
+    /** The user's core override for a hack (AUTO uses the recommended plugin). */
+    fun coreOverrideFor(hackId: String): CoreChoice = sessionStore.coreOverride(hackId)
+
+    fun setCoreOverride(hackId: String, choice: CoreChoice) {
+        sessionStore.setCoreOverride(hackId, choice)
+        _uiState.update { it.copy(coreOverrideVersion = it.coreOverrideVersion + 1) }
+        // M64Plus FZ needs a real file in shared storage, so grab All-Files access now.
+        if (choice == CoreChoice.M64PLUS_FZ) patchLauncher.requestAllFilesAccess()
+    }
+
+    /** Deletes any patched ROMs for a hack (across all its variants). */
+    fun unpatch(hack: Hack) {
+        (hack.variants.map { it.name } + hack.version).distinct().forEach { version ->
+            patchLauncher.deletePatched(patchLauncher.patchedRomFile(hack.title, version))
+        }
+        _uiState.update {
+            it.copy(
+                patchGeneration = it.patchGeneration + 1,
+                status = StatusMessage.Info(getApplication<Application>().getString(R.string.status_unpatched, hack.title)),
+            )
+        }
     }
 
     /** Lazily resolves (and caches) a hack's thumbnail URL for the grid. */
@@ -159,13 +197,15 @@ class LauncherViewModel(
                 hackId = hack.id,
                 hackTitle = hack.title,
                 versionName = variant.name,
+                gfxPlugin = variant.plugin,
+                coreChoice = sessionStore.coreOverride(hack.id),
                 tracking = buildTracking(hack),
                 onProgress = { text -> _uiState.update { it.copy(status = StatusMessage.Info(text)) } },
             )
             _uiState.update {
                 when (result) {
                     is PatchLauncher.Result.Success ->
-                        it.copy(isLoading = false, status = StatusMessage.Success(string(R.string.status_launch_ok)))
+                        it.copy(isLoading = false, patchGeneration = it.patchGeneration + 1, status = StatusMessage.Success(string(R.string.status_launch_ok)))
                     is PatchLauncher.Result.Failure ->
                         it.copy(isLoading = false, status = StatusMessage.Error(result.message))
                 }

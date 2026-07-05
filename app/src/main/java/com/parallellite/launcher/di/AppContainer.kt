@@ -20,5 +20,5 @@ class AppContainer(context: Context) {
 
     val hackRepository: HackRepository by lazy { HackRepository(api, sessionStore) }
 
-    val patchLauncher: PatchLauncher by lazy { PatchLauncher(appContext, api) }
+    val patchLauncher: PatchLauncher by lazy { PatchLauncher(appContext, api, sessionStore) }
 }

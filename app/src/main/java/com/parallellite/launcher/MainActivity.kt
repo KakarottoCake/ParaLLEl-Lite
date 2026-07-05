@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.parallellite.launcher.service.StarTrackerService
 import com.parallellite.launcher.ui.launcher.LauncherScreen
 import com.parallellite.launcher.ui.theme.ParallelLiteTheme
 
@@ -27,12 +26,6 @@ class MainActivity : ComponentActivity() {
             hardKeyboardHidden = Configuration.HARDKEYBOARDHIDDEN_YES
         }
         super.attachBaseContext(newBase.createConfigurationContext(config))
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // Returning to the launcher means the play session ended — tear down the tracker.
-        StarTrackerService.stop(this)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

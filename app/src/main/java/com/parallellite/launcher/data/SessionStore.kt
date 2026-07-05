@@ -58,6 +58,14 @@ class SessionStore(context: Context) {
         get() = prefs.getBoolean(KEY_LIVE_TRACK, false)
         set(value) = prefs.edit().putBoolean(KEY_LIVE_TRACK, value).apply()
 
+    fun coreOverride(hackId: String): CoreChoice =
+        prefs.getString("$KEY_CORE_PREFIX$hackId", null)
+            ?.let { runCatching { CoreChoice.valueOf(it) }.getOrNull() }
+            ?: CoreChoice.AUTO
+
+    fun setCoreOverride(hackId: String, choice: CoreChoice) =
+        prefs.edit().putString("$KEY_CORE_PREFIX$hackId", choice.name).apply()
+
     private companion object {
         const val SECURE_PREFS = "secure_prefs"
         const val APP_PREFS = "sm64_launcher_prefs"
@@ -65,5 +73,6 @@ class SessionStore(context: Context) {
         const val KEY_BASE_ROM = "base_rom_path"
         const val KEY_PATCHED_DIR = "patched_rom_dir"
         const val KEY_LIVE_TRACK = "live_tracking_enabled"
+        const val KEY_CORE_PREFIX = "core_override_"
     }
 }

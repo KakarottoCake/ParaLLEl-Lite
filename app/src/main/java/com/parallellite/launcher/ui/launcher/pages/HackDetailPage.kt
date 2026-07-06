@@ -76,6 +76,15 @@ fun HackDetailPage(
             }
         }
 
+        if (hack.recommendedPlugin?.equals("OGRE", ignoreCase = true) == true) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.detail_ogre_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = BrandColors.MarioGold,
+            )
+        }
+
         Spacer(Modifier.height(16.dp))
 
         Text(

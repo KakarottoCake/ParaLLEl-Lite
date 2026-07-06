@@ -23,6 +23,8 @@ your choice — all from one screen.
   written to a folder you choose.
 - **Multiple emulators** — deep-links into RetroArch (ParaLLEl-N64 or
   Mupen64Plus-Next core) or the standalone **M64Plus FZ** app, selectable per hack.
+  Hacks that need OGRE (old SM64-Editor renderer behaviour) are auto-routed to
+  M64Plus FZ, where Rice/Glide64 provide it.
 - **Recommended settings** — surfaces each hack's required graphics/save options
   (framebuffer emulation, 16 kB EEPROM, etc.) straight from the Romhacking metadata.
 - **Second-screen star counter (opt-in)** — a manual star counter on a connected

@@ -44,6 +44,7 @@
     <string name="detail_empty">Select a hack to see details.</string>
     <string name="detail_no_description">No description available.</string>
     <string name="detail_recommended_settings">Recommended settings (set these in M64Plus FZ)</string>
+    <string name="detail_ogre_hint">Needs OGRE — launches in M64Plus FZ. Set its Video Plugin to Rice or Glide64 (remembered per game).</string>
 
     <!-- Dialogs -->
     <string name="dialog_version_title">Select Patch Version</string>

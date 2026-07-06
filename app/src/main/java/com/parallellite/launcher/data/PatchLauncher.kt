@@ -201,7 +201,10 @@ class PatchLauncher(
         if (tracking != null) {
             StarTrackerService.start(appContext, tracking.title, tracking.thumbnailUrl, tracking.totalStars)
         }
-        if (!coreChoice.isRetroArch) {
+        // OGRE-recommended hacks want the old Jabo/Rice-style renderer, which on
+        // Android means M64Plus FZ (Rice/Glide64). Route them there on Auto.
+        val autoOgre = coreChoice == CoreChoice.AUTO && gfxPlugin?.trim()?.equals("OGRE", ignoreCase = true) == true
+        if (!coreChoice.isRetroArch || autoOgre) {
             launchM64PlusFz(rom)
         } else {
             launchRetroArch(rom, coreChoice.libName ?: coreLibFor(gfxPlugin))
@@ -338,7 +341,8 @@ class PatchLauncher(
      */
     private fun coreLibFor(plugin: String?): String = when (plugin?.trim()?.lowercase()) {
         // On Android the Mupen64Plus-Next core ships as the GLES3 build.
-        "gliden64", "glide64", "rice", "ogre" -> "mupen64plus_next_gles3_libretro_android.so"
+        "gliden64", "glide64", "rice" -> "mupen64plus_next_gles3_libretro_android.so"
+        // OGRE is Parallel-N64 + GLideN64 + the SM64-editor option (set in RetroArch).
         else -> "parallel_n64_libretro_android.so"
     }
 
